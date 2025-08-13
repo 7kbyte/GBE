@@ -1,0 +1,13 @@
+DROP TABLE IF EXISTS games;
+
+CREATE TABLE games (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    art INTEGER NOT NULL,
+    music INTEGER NOT NULL,
+    story INTEGER NOT NULL,
+    playability INTEGER NOT NULL,
+    innovation INTEGER NOT NULL,
+    performance INTEGER NOT NULL,
+    remarks TEXT
+);
