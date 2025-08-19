@@ -27,13 +27,14 @@ def get_all_games():
     allowed_sort_fields = [
         'id', 'name', 'release_year', 'art_rating', 'music_rating',
         'story_rating', 'playability_rating', 'innovation_rating',
-        'performance_rating', 'my_overall_score', 'created_at', 'updated_at'
+        'performance_rating', 'my_overall_score', 'created_at', 'updated_at',
+        'random' # 新增随机排序选项
     ]
     if sort_by not in allowed_sort_fields:
         return jsonify({"error": f"Invalid sort_by field. Allowed: {', '.join(allowed_sort_fields)}"}), 400
 
-    # 验证排序顺序
-    if order not in ['ASC', 'DESC']:
+    # 验证排序顺序 (仅当不是随机排序时才验证)
+    if sort_by != 'random' and order not in ['ASC', 'DESC']:
         return jsonify({"error": "Invalid order. Must be 'asc' or 'desc'"}), 400
 
     # 构建查询条件和参数
@@ -53,8 +54,16 @@ def get_all_games():
     where_clause = "WHERE " + " AND ".join(conditions) if conditions else ""
 
     # 获取总游戏数（用于分页）
+    # 注意：对于随机排序，总数获取不受影响，因为随机性只影响 ORDER BY
     count_sql = f"SELECT COUNT(DISTINCT g.id) FROM games g {where_clause}"
     total_games = db.execute(count_sql, tuple(query_params)).fetchone()[0]
+
+    # 构建 ORDER BY 子句
+    order_by_clause = ""
+    if sort_by == 'random':
+        order_by_clause = "ORDER BY RANDOM()" # SQLite 的随机排序函数
+    else:
+        order_by_clause = f"ORDER BY g.{sort_by} {order}"
 
     # 主查询：获取游戏数据及关联标签
     sql = f"""
@@ -70,8 +79,7 @@ def get_all_games():
         {where_clause}
         GROUP BY
             g.id
-        ORDER BY
-            g.{sort_by} {order}
+        {order_by_clause}
         LIMIT ? OFFSET ?
     """
     query_params.extend([per_page, offset]) # 添加分页参数
